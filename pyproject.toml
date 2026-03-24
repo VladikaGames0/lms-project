@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "lms-project"
+version = "0.1.0"
+description = "LMS system for online learning platform"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^5.1"
+djangorestframework = "^3.15"
+pillow = "^10.0"
+
+[tool.poetry.group.dev.dependencies]
+requests = "^2.32.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

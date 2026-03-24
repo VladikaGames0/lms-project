@@ -1,0 +1,48 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django import forms
+from .models import User
+
+
+class CustomUserCreationForm(UserCreationForm):
+    """Form for creating new users"""
+
+    class Meta:
+        model = User
+        fields = ('email',)
+
+
+class CustomUserChangeForm(UserChangeForm):
+    """Form for updating users"""
+
+    class Meta:
+        model = User
+        fields = ('email',)
+
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    """Custom admin for User model"""
+    add_form = CustomUserCreationForm
+    form = CustomUserChangeForm
+    model = User
+
+    list_display = ('email', 'first_name', 'last_name', 'phone', 'city', 'is_staff', 'is_active')
+    list_filter = ('is_staff', 'is_active', 'is_superuser')
+    search_fields = ('email', 'first_name', 'last_name', 'phone')
+    ordering = ('email',)
+
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'phone', 'city', 'avatar')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'is_staff', 'is_active'),
+        }),
+    )
