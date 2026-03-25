@@ -49,3 +49,66 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class Payment(models.Model):
+    """Payment model for tracking payments for courses and lessons"""
+
+    class PaymentMethod(models.TextChoices):
+        CASH = 'cash', 'Наличные'
+        TRANSFER = 'transfer', 'Перевод на счет'
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name='Пользователь'
+    )
+    payment_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата оплаты'
+    )
+    course = models.ForeignKey(
+        'materials.Course',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+        verbose_name='Оплаченный курс'
+    )
+    lesson = models.ForeignKey(
+        'materials.Lesson',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+        verbose_name='Оплаченный урок'
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name='Сумма оплаты'
+    )
+    payment_method = models.CharField(
+        max_length=10,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.TRANSFER,
+        verbose_name='Способ оплаты'
+    )
+
+    class Meta:
+        verbose_name = 'Платеж'
+        verbose_name_plural = 'Платежи'
+        ordering = ['-payment_date']
+
+    def __str__(self):
+        paid_item = self.course if self.course else self.lesson
+        return f"{self.user.email} - {paid_item} - {self.amount} руб."
+
+    def save(self, *args, **kwargs):
+        """Ensure that either course or lesson is selected, but not both"""
+        if self.course and self.lesson:
+            raise ValueError("Нельзя оплатить одновременно курс и урок")
+        if not self.course and not self.lesson:
+            raise ValueError("Нужно выбрать либо курс, либо урок для оплаты")
+        super().save(*args, **kwargs)
