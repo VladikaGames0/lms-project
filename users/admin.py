@@ -1,21 +1,16 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
-from django import forms
-from .models import User
+from .models import User, Payment
 
 
 class CustomUserCreationForm(UserCreationForm):
-    """Form for creating new users"""
-
     class Meta:
         model = User
         fields = ('email',)
 
 
 class CustomUserChangeForm(UserChangeForm):
-    """Form for updating users"""
-
     class Meta:
         model = User
         fields = ('email',)
@@ -23,13 +18,11 @@ class CustomUserChangeForm(UserChangeForm):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    """Custom admin for User model"""
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     model = User
-
-    list_display = ('email', 'first_name', 'last_name', 'phone', 'city', 'is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active', 'is_superuser')
+    list_display = ('email', 'first_name', 'last_name', 'phone', 'city', 'is_active', 'last_login', 'is_staff')
+    list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'first_name', 'last_name', 'phone')
     ordering = ('email',)
 
@@ -46,3 +39,10 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('email', 'password1', 'password2', 'is_staff', 'is_active'),
         }),
     )
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'amount', 'payment_method', 'status', 'payment_date')
+    list_filter = ('payment_method', 'status')
+    search_fields = ('user__email',)

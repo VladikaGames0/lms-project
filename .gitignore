@@ -38,3 +38,7 @@ staticfiles/
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid

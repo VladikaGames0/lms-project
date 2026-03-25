@@ -7,6 +7,7 @@ from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer
 from .paginators import CoursePaginator, LessonPaginator
 from users.permissions import IsModerator, IsOwner
+from .tasks import send_course_update_notification
 
 
 def home_page(request):
@@ -29,6 +30,13 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        """При обновлении курса отправляем уведомления подписчикам"""
+        course = self.get_object()
+        serializer.save()
+        # Отправляем асинхронную задачу на уведомление подписчиков
+        send_course_update_notification.delay(course.id, timezone.now())
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -68,6 +76,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         is_moderator = user.groups.filter(name='moderators').exists()
         if is_moderator or lesson.owner == user:
             serializer.save()
+            # При обновлении урока отправляем уведомление подписчикам курса
+            send_course_update_notification.delay(lesson.course.id, timezone.now())
         else:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("У вас нет прав на редактирование этого урока")
