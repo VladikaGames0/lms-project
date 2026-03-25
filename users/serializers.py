@@ -2,6 +2,21 @@ from rest_framework import serializers
 from .models import User, Payment
 
 
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'password', 'first_name', 'last_name', 'phone', 'city', 'avatar']
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -9,8 +24,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'email']
 
 
+class UserPublicSerializer(serializers.ModelSerializer):
+    """Для просмотра чужого профиля (только общая информация)"""
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'city', 'avatar']
+
+
 class PaymentSerializer(serializers.ModelSerializer):
-    """Serializer for Payment model"""
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_name = serializers.SerializerMethodField()
     paid_item_name = serializers.SerializerMethodField()
@@ -26,11 +47,9 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only_fields = ['payment_date']
 
     def get_user_name(self, obj):
-        """Return full name of the user"""
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email
 
     def get_paid_item_name(self, obj):
-        """Return name of the paid item (course or lesson)"""
         if obj.course:
             return obj.course.title
         elif obj.lesson:
@@ -38,7 +57,6 @@ class PaymentSerializer(serializers.ModelSerializer):
         return None
 
     def get_paid_item_type(self, obj):
-        """Return type of the paid item"""
         if obj.course:
             return 'course'
         elif obj.lesson:

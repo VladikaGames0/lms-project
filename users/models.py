@@ -4,10 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
-    """Custom user manager where email is the unique identifier"""
-
     def create_user(self, email, password=None, **extra_fields):
-        """Create and save a regular user with the given email and password."""
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
@@ -17,7 +14,6 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        """Create and save a superuser with the given email and password."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -31,7 +27,6 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    """Custom user model with email as username field"""
     username = None
     email = models.EmailField(_('email address'), unique=True)
     phone = models.CharField(max_length=35, blank=True, null=True, verbose_name='Телефон')
@@ -52,49 +47,16 @@ class User(AbstractUser):
 
 
 class Payment(models.Model):
-    """Payment model for tracking payments for courses and lessons"""
-
     class PaymentMethod(models.TextChoices):
         CASH = 'cash', 'Наличные'
         TRANSFER = 'transfer', 'Перевод на счет'
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='payments',
-        verbose_name='Пользователь'
-    )
-    payment_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата оплаты'
-    )
-    course = models.ForeignKey(
-        'materials.Course',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='payments',
-        verbose_name='Оплаченный курс'
-    )
-    lesson = models.ForeignKey(
-        'materials.Lesson',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='payments',
-        verbose_name='Оплаченный урок'
-    )
-    amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='Сумма оплаты'
-    )
-    payment_method = models.CharField(
-        max_length=10,
-        choices=PaymentMethod.choices,
-        default=PaymentMethod.TRANSFER,
-        verbose_name='Способ оплаты'
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments', verbose_name='Пользователь')
+    payment_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата оплаты')
+    course = models.ForeignKey('materials.Course', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments', verbose_name='Оплаченный курс')
+    lesson = models.ForeignKey('materials.Lesson', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments', verbose_name='Оплаченный урок')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма оплаты')
+    payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, default=PaymentMethod.TRANSFER, verbose_name='Способ оплаты')
 
     class Meta:
         verbose_name = 'Платеж'
@@ -106,7 +68,6 @@ class Payment(models.Model):
         return f"{self.user.email} - {paid_item} - {self.amount} руб."
 
     def save(self, *args, **kwargs):
-        """Ensure that either course or lesson is selected, but not both"""
         if self.course and self.lesson:
             raise ValueError("Нельзя оплатить одновременно курс и урок")
         if not self.course and not self.lesson:
