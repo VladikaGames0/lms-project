@@ -12,9 +12,6 @@ class LessonSerializer(serializers.ModelSerializer):
         read_only_fields = ['owner']
 
     def validate_video_link(self, value):
-        """
-        Валидация ссылки на видео
-        """
         return validate_youtube_url(value)
 
 
@@ -32,9 +29,6 @@ class CourseSerializer(serializers.ModelSerializer):
         return obj.lessons.count()
 
     def get_is_subscribed(self, obj):
-        """
-        Проверка, подписан ли текущий пользователь на курс
-        """
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.subscriptions.filter(user=request.user).exists()

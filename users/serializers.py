@@ -25,7 +25,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserPublicSerializer(serializers.ModelSerializer):
-    """Для просмотра чужого профиля (только общая информация)"""
     class Meta:
         model = User
         fields = ['id', 'email', 'first_name', 'city', 'avatar']
@@ -42,9 +41,9 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'user_email', 'user_name', 'payment_date',
             'course', 'lesson', 'paid_item_name', 'paid_item_type',
-            'amount', 'payment_method'
+            'amount', 'payment_method', 'status', 'stripe_session_url'
         ]
-        read_only_fields = ['payment_date']
+        read_only_fields = ['payment_date', 'stripe_session_url']
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.email

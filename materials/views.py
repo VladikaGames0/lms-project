@@ -1,3 +1,4 @@
+from django.shortcuts import render
 from rest_framework import viewsets, generics, permissions as drf_permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -6,6 +7,10 @@ from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer
 from .paginators import CoursePaginator, LessonPaginator
 from users.permissions import IsModerator, IsOwner
+
+
+def home_page(request):
+    return render(request, 'materials/index.html')
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -61,7 +66,6 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         lesson = self.get_object()
         user = self.request.user
         is_moderator = user.groups.filter(name='moderators').exists()
-
         if is_moderator or lesson.owner == user:
             serializer.save()
         else:
@@ -78,25 +82,15 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class SubscriptionView(APIView):
-    """
-    Эндпоинт для управления подписками на курс
-    POST /api/courses/subscribe/ - добавить/удалить подписку
-    """
     permission_classes = [drf_permissions.IsAuthenticated]
 
     def post(self, request):
         user = request.user
         course_id = request.data.get('course_id')
-
         if not course_id:
-            return Response(
-                {"error": "Необходимо указать course_id"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+            return Response({"error": "Необходимо указать course_id"}, status=status.HTTP_400_BAD_REQUEST)
         course = get_object_or_404(Course, id=course_id)
         subscription = Subscription.objects.filter(user=user, course=course)
-
         if subscription.exists():
             subscription.delete()
             message = "Подписка удалена"
@@ -105,5 +99,4 @@ class SubscriptionView(APIView):
             Subscription.objects.create(user=user, course=course)
             message = "Подписка добавлена"
             status_code = status.HTTP_201_CREATED
-
         return Response({"message": message}, status=status_code)
