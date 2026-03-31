@@ -1,8 +1,9 @@
 from django.utils import timezone
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Payment
 from .serializers import (
     UserRegistrationSerializer, UserProfileSerializer,
@@ -38,6 +39,10 @@ class UserDetailView(generics.RetrieveAPIView):
 class PaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['course', 'lesson', 'payment_method']
+    ordering_fields = ['payment_date']
+    ordering = ['-payment_date']  # Сортировка по умолчанию - новые сверху
 
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)

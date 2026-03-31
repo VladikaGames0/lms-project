@@ -17,11 +17,29 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+class PaymentShortSerializer(serializers.ModelSerializer):
+    """Краткий сериализатор для истории платежей"""
+    paid_item_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = ['id', 'payment_date', 'amount', 'payment_method', 'status', 'paid_item_name']
+
+    def get_paid_item_name(self, obj):
+        if obj.course:
+            return obj.course.title
+        elif obj.lesson:
+            return obj.lesson.title
+        return None
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
+    payments_history = PaymentShortSerializer(many=True, read_only=True, source='payments')
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone', 'city', 'avatar']
-        read_only_fields = ['id', 'email']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone', 'city', 'avatar', 'payments_history']
+        read_only_fields = ['id', 'email', 'payments_history']
 
 
 class UserPublicSerializer(serializers.ModelSerializer):

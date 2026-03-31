@@ -5,8 +5,9 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-8x#9$2k!@m4n5b6v7c8x9z0a1s2d3f4g5h6j7k8l9m0n1b2v3c4x5z6a7s8d9f0'
-DEBUG = True
+# Используем переменные окружения
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
@@ -19,6 +20,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    'django_filters',
     'users',
     'materials',
 ]
@@ -53,14 +55,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'lms_project.wsgi.application'
 
+# Используем переменные окружения для БД
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'lms_db',
-        'USER': 'lms_user',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
     }
 }
 
@@ -93,6 +96,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ],
 }
 
 SIMPLE_JWT = {
@@ -110,9 +118,9 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Stripe keys (замените на свои)
-STRIPE_PUBLISHABLE_KEY = ''
-STRIPE_SECRET_KEY = ''
+# Stripe keys
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 
 # Celery settings
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
@@ -127,14 +135,14 @@ CELERY_ENABLE_UTC = False
 CELERY_BEAT_SCHEDULE = {
     'deactivate_inactive_users': {
         'task': 'users.tasks.deactivate_inactive_users',
-        'schedule': timedelta(days=1),  # Запускать раз в сутки
+        'schedule': timedelta(days=1),
         'options': {
-            'expires': 86400,  # Задача считается устаревшей через 24 часа
+            'expires': 86400,
         }
     },
 }
 
-# Email settings (для отправки писем)
+# Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
