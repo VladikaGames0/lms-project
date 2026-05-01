@@ -21,7 +21,7 @@ db.sqlite3-journal
 media/
 staticfiles/
 
-# Environment variables
+# Environment variables — НЕ коммитить реальные секреты!
 .env
 .env.local
 
@@ -41,4 +41,9 @@ htmlcov/
 
 # Celery
 celerybeat-schedule
+celerybeat-schedule-wal
+celerybeat-schedule-shm
 celerybeat.pid
+
+# Docker
+*.override.yml
