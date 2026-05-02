@@ -8,9 +8,6 @@ env/
 venv/
 .venv/
 
-# Poetry
-poetry.lock
-
 # Django
 *.log
 *.pot
@@ -21,9 +18,10 @@ db.sqlite3-journal
 media/
 staticfiles/
 
-# Environment variables — НЕ коммитить реальные секреты!
+# Environment — НИКОГДА не коммитить!
 .env
 .env.local
+.env.production
 
 # IDE
 .vscode/
@@ -45,5 +43,5 @@ celerybeat-schedule-wal
 celerybeat-schedule-shm
 celerybeat.pid
 
-# Docker
-*.override.yml
+# Poetry
+poetry.lock
