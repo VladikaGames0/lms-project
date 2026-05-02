@@ -1,0 +1,152 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, homework]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ══════════════════════════════════════════
+  # ЭТАП 1: Линтер (flake8)
+  # ══════════════════════════════════════════
+  lint:
+    name: Lint (flake8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8
+        run: flake8 .
+
+  # ══════════════════════════════════════════
+  # ЭТАП 2: Тесты
+  # ══════════════════════════════════════════
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint  # запускается только после успешного lint
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: lms_db
+          POSTGRES_USER: lms_user
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      DB_NAME: lms_db
+      DB_USER: lms_user
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Run tests
+        run: python manage.py test --verbosity=2
+
+  # ══════════════════════════════════════════
+  # ЭТАП 3: Сборка Docker-образа
+  # ══════════════════════════════════════════
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test  # запускается только после успешных тестов
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t lms-project:${{ github.sha }} .
+
+      - name: Verify image builds successfully
+        run: docker images lms-project
+
+  # ══════════════════════════════════════════
+  # ЭТАП 4: Деплой (только при push в main)
+  # ══════════════════════════════════════════
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build  # запускается только после успешной сборки
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+            cd ~/lms-project
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🔨 Rebuilding containers..."
+            docker compose up -d --build
+
+            echo "🗄️  Running migrations..."
+            docker compose exec -T web python manage.py migrate --noinput
+
+            echo "📦 Collecting static files..."
+            docker compose exec -T web python manage.py collectstatic --noinput
+
+            echo "🧹 Removing unused Docker images..."
+            docker image prune -f
+
+            echo "✅ Deploy completed!"
