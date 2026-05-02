@@ -29,7 +29,9 @@ class User(AbstractUser):
     email = models.EmailField(_('email address'), unique=True)
     phone = models.CharField(max_length=35, blank=True, null=True, verbose_name='Телефон')
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Город')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватарка')
+    avatar = models.ImageField(
+        upload_to='avatars/', blank=True, null=True, verbose_name='Аватарка'
+    )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -54,17 +56,40 @@ class Payment(models.Model):
         FAILED = 'failed', 'Ошибка'
         CANCELLED = 'cancelled', 'Отменено'
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments', verbose_name='Пользователь')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='payments', verbose_name='Пользователь'
+    )
     payment_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата оплаты')
-    course = models.ForeignKey('materials.Course', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments', verbose_name='Оплаченный курс')
-    lesson = models.ForeignKey('materials.Lesson', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments', verbose_name='Оплаченный урок')
+    course = models.ForeignKey(
+        'materials.Course', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='payments', verbose_name='Оплаченный курс'
+    )
+    lesson = models.ForeignKey(
+        'materials.Lesson', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='payments', verbose_name='Оплаченный урок'
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма оплаты')
-    payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, default=PaymentMethod.TRANSFER, verbose_name='Способ оплаты')
-    status = models.CharField(max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING, verbose_name='Статус платежа')
-    stripe_product_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Stripe Product ID')
-    stripe_price_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Stripe Price ID')
-    stripe_session_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Stripe Session ID')
-    stripe_session_url = models.URLField(blank=True, null=True, verbose_name='Stripe Checkout URL')
+    payment_method = models.CharField(
+        max_length=10, choices=PaymentMethod.choices,
+        default=PaymentMethod.TRANSFER, verbose_name='Способ оплаты'
+    )
+    status = models.CharField(
+        max_length=10, choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING, verbose_name='Статус платежа'
+    )
+    stripe_product_id = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name='Stripe Product ID'
+    )
+    stripe_price_id = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name='Stripe Price ID'
+    )
+    stripe_session_id = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name='Stripe Session ID'
+    )
+    stripe_session_url = models.URLField(
+        blank=True, null=True, verbose_name='Stripe Checkout URL'
+    )
 
     class Meta:
         verbose_name = 'Платеж'

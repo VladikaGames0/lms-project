@@ -1,4 +1,3 @@
-from django.utils import timezone
 from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -42,7 +41,7 @@ class PaymentListView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['course', 'lesson', 'payment_method']
     ordering_fields = ['payment_date']
-    ordering = ['-payment_date']  # Сортировка по умолчанию - новые сверху
+    ordering = ['-payment_date']
 
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
@@ -58,9 +57,15 @@ class CreatePaymentView(generics.CreateAPIView):
         payment.stripe_product_id = product_id
         price_id = create_stripe_price(product_id, float(payment.amount))
         payment.stripe_price_id = price_id
-        success_url = self.request.build_absolute_uri(reverse('users:payment-success', args=[payment.id]))
-        cancel_url = self.request.build_absolute_uri(reverse('users:payment-cancel', args=[payment.id]))
-        session_id, session_url = create_stripe_checkout_session(price_id, payment.id, success_url, cancel_url)
+        success_url = self.request.build_absolute_uri(
+            reverse('users:payment-success', args=[payment.id])
+        )
+        cancel_url = self.request.build_absolute_uri(
+            reverse('users:payment-cancel', args=[payment.id])
+        )
+        session_id, session_url = create_stripe_checkout_session(
+            price_id, payment.id, success_url, cancel_url
+        )
         payment.stripe_session_id = session_id
         payment.stripe_session_url = session_url
         payment.save()
@@ -89,11 +94,14 @@ class PaymentStatusView(generics.RetrieveAPIView):
             if stripe_status.get('payment_status') == 'paid':
                 payment.status = 'paid'
                 payment.save()
+        paid_item = payment.course.title if payment.course else (
+            payment.lesson.title if payment.lesson else None
+        )
         return Response({
             'payment_id': payment.id,
             'status': payment.status,
             'amount': payment.amount,
-            'paid_item': payment.course.title if payment.course else (payment.lesson.title if payment.lesson else None),
+            'paid_item': paid_item,
             'payment_url': payment.stripe_session_url
         })
 

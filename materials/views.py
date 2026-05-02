@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.utils import timezone
 from rest_framework import viewsets, generics, permissions as drf_permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -6,7 +7,6 @@ from django.shortcuts import get_object_or_404
 from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer
 from .paginators import CoursePaginator, LessonPaginator
-from users.permissions import IsModerator, IsOwner
 from .tasks import send_course_update_notification
 
 
@@ -35,7 +35,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         """При обновлении курса отправляем уведомления подписчикам"""
         course = self.get_object()
         serializer.save()
-        # Отправляем асинхронную задачу на уведомление подписчиков
         send_course_update_notification.delay(course.id, timezone.now())
 
     def get_serializer_context(self):
@@ -76,7 +75,6 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         is_moderator = user.groups.filter(name='moderators').exists()
         if is_moderator or lesson.owner == user:
             serializer.save()
-            # При обновлении урока отправляем уведомление подписчикам курса
             send_course_update_notification.delay(lesson.course.id, timezone.now())
         else:
             from rest_framework.exceptions import PermissionDenied

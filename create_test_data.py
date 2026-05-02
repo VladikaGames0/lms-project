@@ -4,34 +4,31 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lms_project.settings')
 django.setup()
 
-from materials.models import Course, Lesson
-from users.models import User, Payment
+from materials.models import Course, Lesson  # noqa: E402
+from users.models import User, Payment  # noqa: E402
 
 
 def create_test_data():
     print("Создание тестовых данных...")
 
-    # Суперпользователь
-    superuser, _ = User.objects.get_or_create(
+    superuser, created = User.objects.get_or_create(
         email='admin@example.com',
         defaults={'first_name': 'Admin', 'last_name': 'User', 'is_staff': True, 'is_superuser': True}
     )
-    if _:
+    if created:
         superuser.set_password('admin123')
         superuser.save()
         print("Создан суперпользователь: admin@example.com")
 
-    # Обычный пользователь
-    user, _ = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         email='student@example.com',
         defaults={'first_name': 'Student', 'last_name': 'User', 'phone': '+7 (999) 123-45-67', 'city': 'Москва'}
     )
-    if _:
+    if created:
         user.set_password('student123')
         user.save()
         print("Создан пользователь: student@example.com")
 
-    # Курсы с owner
     course1, _ = Course.objects.get_or_create(
         title='Python для начинающих',
         defaults={'description': 'Базовый курс', 'owner': user}
@@ -44,7 +41,6 @@ def create_test_data():
     )
     print(f"Курс: {course2.title}, владелец: {course2.owner}")
 
-    # Уроки с owner
     lesson1, _ = Lesson.objects.get_or_create(
         title='Введение в Python',
         course=course1,
@@ -66,7 +62,6 @@ def create_test_data():
     )
     print(f"Урок: {lesson3.title}, владелец: {lesson3.owner}")
 
-    # Платежи
     Payment.objects.get_or_create(
         user=user, course=course1, defaults={'amount': 4990.00, 'payment_method': 'transfer'}
     )

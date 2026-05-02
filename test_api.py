@@ -1,5 +1,4 @@
 import requests
-import json
 
 BASE_URL = "http://localhost:8000/api"
 
@@ -7,7 +6,6 @@ BASE_URL = "http://localhost:8000/api"
 def test_courses():
     print("\n=== Тестирование курсов ===")
 
-    # Создание курса
     course_data = {
         "title": "Python для начинающих",
         "description": "Базовый курс по Python"
@@ -19,17 +17,14 @@ def test_courses():
     if response.status_code == 201:
         course_id = response.json()['id']
 
-        # Получение списка курсов
         response = requests.get(f"{BASE_URL}/courses/")
         print(f"\nGET /courses/: {response.status_code}")
         print(f"Список курсов: {response.json()}")
 
-        # Получение конкретного курса
         response = requests.get(f"{BASE_URL}/courses/{course_id}/")
         print(f"\nGET /courses/{course_id}/: {response.status_code}")
         print(f"Курс: {response.json()}")
 
-        # Обновление курса
         update_data = {"title": "Python для продвинутых"}
         response = requests.patch(f"{BASE_URL}/courses/{course_id}/", json=update_data)
         print(f"\nPATCH /courses/{course_id}/: {response.status_code}")
@@ -42,7 +37,6 @@ def test_courses():
 def test_lessons(course_id):
     print("\n=== Тестирование уроков ===")
 
-    # Создание урока
     lesson_data = {
         "title": "Введение в Python",
         "description": "Первый урок курса",
@@ -56,23 +50,19 @@ def test_lessons(course_id):
     if response.status_code == 201:
         lesson_id = response.json()['id']
 
-        # Получение списка уроков
         response = requests.get(f"{BASE_URL}/lessons/")
         print(f"\nGET /lessons/: {response.status_code}")
         print(f"Список уроков: {response.json()}")
 
-        # Получение конкретного урока
         response = requests.get(f"{BASE_URL}/lessons/{lesson_id}/")
         print(f"\nGET /lessons/{lesson_id}/: {response.status_code}")
         print(f"Урок: {response.json()}")
 
-        # Обновление урока
         update_data = {"title": "Python - введение в программирование"}
         response = requests.patch(f"{BASE_URL}/lessons/{lesson_id}/", json=update_data)
         print(f"\nPATCH /lessons/{lesson_id}/: {response.status_code}")
         print(f"Обновленный урок: {response.json()}")
 
-        # Удаление урока
         response = requests.delete(f"{BASE_URL}/lessons/{lesson_id}/")
         print(f"\nDELETE /lessons/{lesson_id}/: {response.status_code}")
 
