@@ -75,7 +75,6 @@ docker compose exec web python manage.py loaddata users/fixtures/payments.json
 |-------|----------|
 | http://localhost:8000/ | Главная страница |
 | http://localhost:8000/api/ | API корень |
-| http://localhost:8000/api/schema/swagger-ui/ | Swagger UI документация |
 | http://localhost:8000/api/schema/redoc/ | ReDoc документация |
 | http://localhost:8000/admin/ | Django Admin |
 
