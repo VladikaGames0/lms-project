@@ -1,156 +1,133 @@
 # LMS Project
 
-Платформа онлайн-обучения на Django REST Framework.
+Платформа онлайн-обучения на Django REST Framework с поддержкой Celery, PostgreSQL и Redis.
 
-## Стек
+## Стек технологий
 
-| Компонент | Технология |
-|-----------|-----------|
-| Backend | Django 5.1 + DRF |
-| WSGI-сервер | Gunicorn |
-| Reverse-proxy | Nginx |
-| База данных | PostgreSQL 16 |
-| Брокер задач | Redis 7 |
-| Фоновые задачи | Celery + Celery Beat |
-| Оркестрация | Docker Compose |
-| CI/CD | GitHub Actions |
+- **Backend**: Django 5.1 + Django REST Framework
+- **База данных**: PostgreSQL 16
+- **Брокер задач**: Redis 7
+- **Фоновые задачи**: Celery + Celery Beat
+- **Аутентификация**: JWT (djangorestframework-simplejwt)
+- **Платежи**: Stripe
+- **Документация API**: drf-spectacular (OpenAPI/Swagger)
 
----
+## Требования
 
-## Быстрый старт (локально)
+- Docker и Docker Compose (версия 2.x+)
+
+## Быстрый старт
+
+### 1. Клонировать репозиторий
 
 ```bash
-# 1. Клонировать репозиторий
-git clone https://github.com/YOUR_USERNAME/lms-project.git
+git clone <url-репозитория>
 cd lms-project
-
-# 2. Создать .env из шаблона
-cp .env.template .env
-# Отредактировать .env — заполнить SECRET_KEY, пароли и т.д.
-
-# 3. Запустить
-docker compose up --build
-
-# 4. Создать суперпользователя (в отдельном терминале)
-docker compose exec web python manage.py createsuperuser
 ```
 
-**Приложение:** http://localhost (через Nginx на порту 80)  
-**Admin:** http://localhost/admin/  
-**Swagger:** http://localhost/api/docs/
+### 2. Создать файл `.env`
 
----
-
-## Деплой на сервер
-
-### Шаг 1. Подключитесь к серверу
+Скопируйте пример и заполните своими значениями:
 
 ```bash
-ssh root@YOUR_SERVER_IP
+cp .env.example .env
 ```
 
-### Шаг 2. Запустите скрипт настройки
-
-```bash
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/lms-project/main/server_setup.sh
-bash server_setup.sh https://github.com/YOUR_USERNAME/lms-project.git
-```
-
-Скрипт:
-- Установит Docker и Git
-- Создаст пользователя `deploy` (без root-прав)
-- Настроит файрвол (открыты только порты 22 и 80)
-- Сгенерирует SSH-ключ для GitHub Actions
-- Склонирует репозиторий
-
-### Шаг 3. Заполните .env на сервере
-
-```bash
-nano /home/deploy/lms-project/.env
-```
-
-Обязательно укажите:
+Обязательно укажите в `.env`:
 - `SECRET_KEY` — длинная случайная строка
-- `ALLOWED_HOSTS` — IP сервера или домен
-- `DB_PASSWORD` — надёжный пароль
-- `DB_HOST=db` и `REDIS_URL=redis://redis:6379/0`
+- `DB_PASSWORD` — пароль для PostgreSQL
+- `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` — данные почты для уведомлений
+- `STRIPE_PUBLISHABLE_KEY` / `STRIPE_SECRET_KEY` — ключи Stripe (можно оставить тестовые)
 
-### Шаг 4. Первый запуск на сервере
+> ⚠️ Убедитесь, что в `.env` хосты указаны как имена сервисов Docker:
+> - `DB_HOST=db`
+> - `REDIS_URL=redis://redis:6379/0`
+
+### 3. Запустить проект
 
 ```bash
-su - deploy
-cd lms-project
-docker compose up -d --build
+docker compose up --build
+```
+
+При первом запуске Docker автоматически:
+- Соберёт образ приложения
+- Запустит PostgreSQL и Redis
+- Применит миграции базы данных (`migrate`)
+- Соберёт статику (`collectstatic`)
+- Запустит Django-сервер, Celery worker и Celery Beat
+
+### 4. Создать суперпользователя (опционально)
+
+```bash
 docker compose exec web python manage.py createsuperuser
 ```
 
----
-
-## GitHub Actions — настройка секретов
-
-**Settings → Secrets and variables → Actions → New repository secret**
-
-| Secret | Описание | Пример |
-|--------|----------|--------|
-| `SECRET_KEY` | Django secret key | `django-insecure-abc...` |
-| `STRIPE_PUBLISHABLE_KEY` | Публичный ключ Stripe | `pk_test_...` |
-| `STRIPE_SECRET_KEY` | Секретный ключ Stripe | `sk_test_...` |
-| `SERVER_HOST` | IP сервера | `185.100.67.123` |
-| `SERVER_USER` | Пользователь SSH | `deploy` |
-| `SERVER_PORT` | Порт SSH | `22` |
-| `SERVER_SSH_KEY` | Приватный SSH-ключ | `-----BEGIN OPENSSH...` |
-
----
-
-## CI/CD пайплайн
-
-```
-git push origin main
-        │
-        ▼
-┌───────────────┐
-│  1. lint      │  flake8 — проверка стиля кода
-└──────┬────────┘
-       │ ✅
-       ▼
-┌───────────────┐
-│  2. test      │  PostgreSQL + Redis в GitHub CI
-│               │  manage.py test
-└──────┬────────┘
-       │ ✅
-       ▼
-┌───────────────┐
-│  3. build     │  docker build — проверка сборки образа
-└──────┬────────┘
-       │ ✅ (только push в main)
-       ▼
-┌───────────────┐
-│  4. deploy    │  SSH → git pull → docker compose up
-└───────────────┘
-```
-
-> Деплой выполняется **только при push в `main`**. Pull requests проходят только lint + test.
-
----
-
-## Управление на сервере
+### 5. Загрузить тестовые данные (опционально)
 
 ```bash
-# Статус контейнеров
-docker compose ps
-
-# Логи приложения
-docker compose logs -f web
-
-# Перезапуск
-docker compose restart web
-
-# Остановить всё
-docker compose down
+docker compose exec web python manage.py loaddata users/fixtures/groups.json
+docker compose exec web python manage.py loaddata users/fixtures/payments.json
 ```
 
----
+## Доступные URL
+
+| Адрес | Описание |
+|-------|----------|
+| http://localhost:8000/ | Главная страница |
+| http://localhost:8000/api/ | API корень |
+| http://localhost:8000/api/schema/swagger-ui/ | Swagger UI документация |
+| http://localhost:8000/api/schema/redoc/ | ReDoc документация |
+| http://localhost:8000/admin/ | Django Admin |
+
+## Управление контейнерами
+
+```bash
+# Запустить в фоновом режиме
+docker compose up -d
+
+# Остановить все контейнеры
+docker compose down
+
+# Остановить и удалить volumes (сбросить базу данных)
+docker compose down -v
+
+# Просмотр логов
+docker compose logs -f
+
+# Логи конкретного сервиса
+docker compose logs -f web
+docker compose logs -f celery
+
+# Выполнить команду внутри контейнера
+docker compose exec web python manage.py shell
+```
+
+## Структура сервисов
+
+| Сервис | Образ | Доступ снаружи |
+|--------|-------|----------------|
+| `web` | Собственный (Dockerfile) | `localhost:8000` |
+| `db` | postgres:16-alpine | Только внутри сети (expose) |
+| `redis` | redis:7-alpine | Только внутри сети (expose) |
+| `celery` | Собственный (Dockerfile) | Нет |
+| `celery-beat` | Собственный (Dockerfile) | Нет |
 
 ## Переменные окружения
 
-Все переменные описаны в `.env.template`. Реальный `.env` не коммитится в репозиторий (защищён `.gitignore`).
+Все переменные описаны в файле `.env.example`. Реальный файл `.env` не коммитится в репозиторий.
+
+| Переменная | Описание |
+|-----------|----------|
+| `SECRET_KEY` | Секретный ключ Django |
+| `DEBUG` | Режим отладки (True/False) |
+| `ALLOWED_HOSTS` | Разрешённые хосты (через запятую) |
+| `DB_NAME` | Имя базы данных |
+| `DB_USER` | Пользователь базы данных |
+| `DB_PASSWORD` | Пароль базы данных |
+| `DB_HOST` | Хост БД (в Docker: `db`) |
+| `DB_PORT` | Порт БД (по умолчанию: `5432`) |
+| `REDIS_URL` | URL Redis (в Docker: `redis://redis:6379/0`) |
+| `EMAIL_HOST_USER` | Email для отправки уведомлений |
+| `EMAIL_HOST_PASSWORD` | Пароль приложения Gmail |
+| `STRIPE_PUBLISHABLE_KEY` | Публичный ключ Stripe |
+| `STRIPE_SECRET_KEY` | Секретный ключ Stripe |
